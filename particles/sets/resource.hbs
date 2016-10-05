@@ -6,7 +6,7 @@ methods:
     method: "GET"
     authType: "NONE"
     requestParameters: {"method.request.header.external-id":true}
-    lambdaArn: ""
+    lambdaArn: "arn:aws:lambda:us-east-1:089476987273:function:Catch-All"
     requestTemplates: {
       "application/json": "{\n  \"federateRoleArn\": \"$input.params('federateRoleArn')\",\n  \"accountRoleArn\": \"$input.params('accountRoleArn')\",\n  \"externalId\": \"$input.params('externalId')\"\n}\n"
     }
@@ -14,7 +14,6 @@ methods:
     method: "POST"
     authType: "NONE"
     requestParameters: {"method.request.header.external-id":true}
-    lambdaArn: ""
     requestTemplates: {
       "application/json": "{\n  \"federateRoleArn\": \"$input.params('federateRoleArn')\",\n  \"accountRoleArn\": \"$input.params('accountRoleArn')\",\n  \"externalId\": \"$input.params('externalId')\"\n}\n"
     }
@@ -55,6 +54,12 @@ allowedOrigin: "'*'"
   description="Parent Resource Id"
 }}
 
+{{
+  parameter "m:core" "base"
+  logicalId="EC2POSTLambdaArn"
+  type="String"
+  description="Lambda Arn of EC2POST method"
+}}
 
 {{#resource logicalId=resourceId}}
   "Type" : "AWS::ApiGateway::Resource",
@@ -67,51 +72,52 @@ allowedOrigin: "'*'"
 
 {{#each methods}}
 
-  {{#resource logicalId=(concat resourceId this.method)}}
+  {{#resource logicalId=(concat ../resourceId this.method)}}
     "Type" : "AWS::ApiGateway::Method",
     "Properties" : {
       "RestApiId": { "Ref": "RestApiId" },
-      "ResourceId": (ref resourceId),
-      "HttpMethod": this.method,
-      "AuthorizationType": this.authType,
+      "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
+      "HttpMethod": {{helper "m:core" "propertyValue" this.method}},
+      "AuthorizationType": {{helper "m:core" "propertyValue" this.authType}},
       {{#if this.requestParameters}}
-        "RequestParameters": this.requestParameters
+        "RequestParameters": {{helper "m:core" "propertyValue" this.requestParameters}},
       {{/if}}
       "Integration": {
         "Credentials": { "Ref": "LambdaInvokeRoleArn" },
         "IntegrationHttpMethod": "POST",
         "Type": "AWS",
-        "Uri": concat("arn:aws:apigateway:" (ref "AWS::Region") ":lambda:path/2015-03-31/functions/" this.lambdaArn "/invocations"),
-        "RequestTemplates": this.requestTemplates,
+        "Uri": {"Fn::Join": ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {{#if this.lambdaArn}} {{helper "m:core" "propertyValue" this.lambdaArn}} {{else}} { "Ref": "{{concat resourceId this.method "LambdaArn"}}" } {{/if}}, "/invocations"]]},
+        "RequestTemplates": {{helper "m:core" "propertyValue" this.requestTemplates}},
         {{{ set 'integration_responses' }}}
       },
       {{{ set 'method_responses' }}}
     }
   {{/resource}}
 
-  {{#resource logicalId=(concat resourceId "Options")}}
-    "Type" : "AWS::ApiGateway::Method",
-    "Properties" : {
-      "RestApiId": { "Ref": "RestApiId" },
-      "ResourceId": (ref resourceId),
-      "HttpMethod": "OPTIONS",
-      "AuthorizationType": "NONE",
-      "Integration": {
-        "Type": "MOCK",
-        "RequestTemplates": {"application/json": "{\"statusCode\": 200}" },
-        {{{ set 'integration_responses'
-          statusCodes=statusCodes
-          allowedMethods=allowedMethods
-          allowedHeaders=allowedHeaders
-        }}}
-      },
-      {{{ set 'method_responses'
+{{/each}}
+
+
+{{#resource logicalId=(concat resourceId "Options")}}
+  "Type" : "AWS::ApiGateway::Method",
+  "Properties" : {
+    "RestApiId": { "Ref": "RestApiId" },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
+    "HttpMethod": "OPTIONS",
+    "AuthorizationType": "NONE",
+    "Integration": {
+      "Type": "MOCK",
+      "RequestTemplates": {"application/json": "{\"statusCode\": 200}" },
+      {{{ set 'integration_responses'
         statusCodes=statusCodes
-        contentType=contentType
         allowedMethods=allowedMethods
         allowedHeaders=allowedHeaders
       }}}
-    }
-  {{/resource}}
-
-{{/each}}
+    },
+    {{{ set 'method_responses'
+      statusCodes=statusCodes
+      contentType=contentType
+      allowedMethods=allowedMethods
+      allowedHeaders=allowedHeaders
+    }}}
+  }
+{{/resource}}
