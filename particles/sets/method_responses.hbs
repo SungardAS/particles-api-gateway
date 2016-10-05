@@ -1,0 +1,29 @@
+---
+statusCodes:
+  -
+    code: "200"
+  -
+    code: "401"
+  -
+    code: "403"
+contentType: "application/json"
+allowedMethods: ""
+allowedHeaders: ""
+allowedOrigin: "'*'"
+---
+"MethodResponses": [
+  {{#each statusCodes}}
+    {{ partial 'method_response'
+      statusCode=this.code
+      contentType=../contentType
+      allowedMethods=../allowedMethods
+      allowedHeaders=../allowedHeaders
+      allowedOrigin=../allowedOrigin
+    }}
+    {{#if @last}}
+      }
+    {{else}}
+      },
+    {{/if}}
+  {{/each}}
+]

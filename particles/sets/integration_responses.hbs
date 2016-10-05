@@ -1,0 +1,31 @@
+---
+statusCodes:
+  -
+    pattern: ""
+    code: "200"
+  -
+    pattern: "not permitted.*"
+    code: "401"
+  -
+    pattern: "unauthorized.*"
+    code: "403"
+allowedMethods: ""
+allowedHeaders: ""
+allowedOrigin: "'*'"
+---
+"IntegrationResponses": [
+  {{#each statusCodes}}
+    {{ partial 'integration_response'
+      selectionPattern=this.pattern
+      statusCode=this.code
+      allowedMethods=../allowedMethods
+      allowedHeaders=../allowedHeaders
+      allowedOrigin=../allowedOrigin
+    }}
+    {{#if @last}}
+      }
+    {{else}}
+      },
+    {{/if}}
+  {{/each}}
+]

@@ -1,0 +1,19 @@
+---
+selectionPattern: "",
+statusCode: "",
+allowedMethods: ""
+allowedHeaders: ""
+allowedOrigin: "'*'"
+---
+  {
+    "SelectionPattern": {{helper "m:core" "propertyValue" selectionPattern}},
+    "StatusCode": {{helper "m:core" "propertyValue" statusCode}},
+    "ResponseParameters": {
+      {{#if allowedMethods}}
+        "method.response.header.Access-Control-Allow-Methods": {{helper "m:core" "propertyValue" allowedMethods}},
+      {{/if}}
+      {{#if allowedHeaders}}
+        "method.response.header.Access-Control-Allow-Headers": {{helper "m:core" "propertyValue" allowedHeaders}},
+      {{/if}}
+      "method.response.header.Access-Control-Allow-Origin": {{helper "m:core" "propertyValue" allowedOrigin}}
+    }
