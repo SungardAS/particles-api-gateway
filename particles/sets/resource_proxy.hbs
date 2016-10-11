@@ -1,0 +1,90 @@
+---
+restApiId: "RestApiId"
+parentResourceId: "ParentResourceId"
+resourceId: "Example"
+resourcePath: "example"
+cacheNamespace: "q5zvnv"
+lambdaArn: ""
+invokeFunctionRoleArn: ""
+statusCodes:
+  -
+    pattern: ""
+    code: "200"
+  -
+    pattern: "not permitted.*"
+    code: "401"
+  -
+    pattern: "unauthorized.*"
+    code: "403"
+contentType: "application/json"
+allowedMethods: "'OPTIONS'"
+allowedHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+allowedOrigin: "'*'"
+---
+{{#resource logicalId=resourceId}}
+  "Type" : "AWS::ApiGateway::Resource",
+  "Properties" : {
+    "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
+    "ParentId": { "Ref": {{helper "m:core" "propertyValue" parentResourceId}} },
+    "PathPart": {{helper "m:core" "propertyValue" resourcePath}}
+  }
+{{/resource}}
+
+{{#resource logicalId=(concat resourceId "Proxy")}}
+  "Type" : "AWS::ApiGateway::Resource",
+  "Properties" : {
+    "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
+    "ParentId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
+    "PathPart": "{proxy+}"
+  }
+{{/resource}}
+
+{{#resource logicalId=(concat resourceId "Any")}}
+  "Type" : "AWS::ApiGateway::Method",
+  "Properties" : {
+    "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" (concat resourceId "Proxy")}} },
+    "HttpMethod": "ANY",
+    "AuthorizationType": "NONE",
+    "RequestParameters": {"method.request.path.proxy":true},
+    "Integration": {
+      "Credentials": { "Ref": {{helper "m:core" "propertyValue" invokeFunctionRoleArn}} },
+      "IntegrationHttpMethod": "POST",
+      "PassthroughBehavior": "WHEN_NO_MATCH",
+      "CacheNamespace": {{helper "m:core" "propertyValue" cacheNamespace}},
+      "CacheKeyParameters": [
+        "method.request.path.proxy"
+      ],
+      "Type": "AWS_PROXY",
+      "Uri": {"Fn::Join": ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", { "Ref": {{helper "m:core" "propertyValue" lambdaArn}} }, "/invocations"]]},
+      "RequestTemplates": {},
+      {{ set 'integration_responses' }}
+    },
+    {{ set 'method_responses' }}
+  }
+{{/resource}}
+
+{{#resource logicalId=(concat resourceId "Options")}}
+  "Type" : "AWS::ApiGateway::Method",
+  "Properties" : {
+    "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" (concat resourceId "Proxy")}} },
+    "HttpMethod": "OPTIONS",
+    "AuthorizationType": "NONE",
+    "Integration": {
+      "Type": "MOCK",
+      "RequestTemplates": {"application/json": "{\"statusCode\": 200}" },
+      {{ set 'integration_responses'
+        statusCodes=statusCodes
+        allowedMethods=allowedMethods
+        allowedHeaders=allowedHeaders
+      }}
+    },
+    {{ set 'method_responses'
+      statusCodes=statusCodes
+      contentType=contentType
+      allowedMethods=allowedMethods
+      allowedHeaders=allowedHeaders
+    }}
+  }
+{{/resource}}
