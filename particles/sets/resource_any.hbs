@@ -34,7 +34,7 @@ allowedOrigin: "'*'"
   "Type" : "AWS::ApiGateway::Method",
   "Properties" : {
     "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
-    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" (concat resourceId "Proxy")}} },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
     "HttpMethod": "ANY",
     "AuthorizationType": "NONE",
     "RequestParameters": {"method.request.path.proxy":true},
@@ -59,7 +59,7 @@ allowedOrigin: "'*'"
   "Type" : "AWS::ApiGateway::Method",
   "Properties" : {
     "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
-    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" (concat resourceId "Proxy")}} },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
     "HttpMethod": "OPTIONS",
     "AuthorizationType": "NONE",
     "Integration": {
