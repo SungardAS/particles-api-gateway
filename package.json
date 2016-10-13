@@ -1,6 +1,6 @@
 {
   "name": "particles-api-gateway",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Condensation particles for building AWS CloudFormation templates.",
   "scripts": {
     "test": "./node_modules/.bin/mocha",
