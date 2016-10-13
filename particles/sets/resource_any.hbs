@@ -30,15 +30,6 @@ allowedOrigin: "'*'"
   }
 {{/resource}}
 
-{{#resource logicalId=(concat resourceId "Proxy")}}
-  "Type" : "AWS::ApiGateway::Resource",
-  "Properties" : {
-    "RestApiId": { "Ref": {{helper "m:core" "propertyValue" restApiId}} },
-    "ParentId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
-    "PathPart": "{proxy+}"
-  }
-{{/resource}}
-
 {{#resource logicalId=(concat resourceId "Any")}}
   "Type" : "AWS::ApiGateway::Method",
   "Properties" : {

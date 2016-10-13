@@ -1,22 +1,4 @@
 ---
-resourceId: "EC2"
-resourcePath: "ec2"
-methods:
-  -
-    method: "GET"
-    authType: "NONE"
-    requestParameters: {"method.request.header.external-id":true}
-    lambdaArn: "arn:aws:lambda:us-east-1:089476987273:function:Catch-All"
-    requestTemplates: {
-      "application/json": "{\n  \"federateRoleArn\": \"$input.params('federateRoleArn')\",\n  \"accountRoleArn\": \"$input.params('accountRoleArn')\",\n  \"externalId\": \"$input.params('externalId')\"\n}\n"
-    }
-  -
-    method: "POST"
-    authType: "NONE"
-    requestParameters: {"method.request.header.external-id":true}
-    requestTemplates: {
-      "application/json": "{\n  \"federateRoleArn\": \"$input.params('federateRoleArn')\",\n  \"accountRoleArn\": \"$input.params('accountRoleArn')\",\n  \"externalId\": \"$input.params('externalId')\"\n}\n"
-    }
 statusCodes:
   -
     pattern: ""
@@ -28,38 +10,10 @@ statusCodes:
     pattern: "unauthorized.*"
     code: "403"
 contentType: "application/json"
-allowedMethods: "'GET,POST,OPTIONS'"
-allowedHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,external-id'"
+allowedMethods: "'OPTIONS'"
+allowedHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
 allowedOrigin: "'*'"
 ---
-
-{{
-   parameter "m:core" "base"
-   logicalId="LambdaInvokeRoleArn"
-   type="String"
-   description="ARN of IAM role that can invoke lambda functions"
-}}
-
-{{
-  parameter "m:core" "base"
-  logicalId="RestApiId"
-  type="String"
-  description="API Id"
-}}
-
-{{
-  parameter "m:core" "base"
-  logicalId="ParentResourceId"
-  type="String"
-  description="Parent Resource Id"
-}}
-
-{{
-  parameter "m:core" "base"
-  logicalId="EC2POSTLambdaArn"
-  type="String"
-  description="Lambda Arn of EC2POST method"
-}}
 
 {{#resource logicalId=resourceId}}
   "Type" : "AWS::ApiGateway::Resource",
@@ -72,21 +26,21 @@ allowedOrigin: "'*'"
 
 {{#each methods}}
 
-  {{#resource logicalId=(concat ../resourceId this.method)}}
+  {{#resource logicalId=(concat this.resourceId this.method)}}
     "Type" : "AWS::ApiGateway::Method",
     "Properties" : {
       "RestApiId": { "Ref": "RestApiId" },
-      "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
+      "ResourceId": { "Ref": {{helper "m:core" "propertyValue" this.resourceId}} },
       "HttpMethod": {{helper "m:core" "propertyValue" this.method}},
       "AuthorizationType": {{helper "m:core" "propertyValue" this.authType}},
       {{#if this.requestParameters}}
         "RequestParameters": {{helper "m:core" "propertyValue" this.requestParameters}},
       {{/if}}
       "Integration": {
-        "Credentials": { "Ref": "LambdaInvokeRoleArn" },
+        "Credentials": { "Ref": "InvokeFunctionRoleArn" },
         "IntegrationHttpMethod": "POST",
         "Type": "AWS",
-        "Uri": {"Fn::Join": ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {{#if this.lambdaArn}} {{helper "m:core" "propertyValue" this.lambdaArn}} {{else}} { "Ref": "{{concat resourceId this.method "LambdaArn"}}" } {{/if}}, "/invocations"]]},
+        "Uri": {"Fn::Join": ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", { "Ref": {{helper "m:core" "propertyValue" this.lambdaArn}} }, "/invocations"]]},
         "RequestTemplates": {{helper "m:core" "propertyValue" this.requestTemplates}},
         {{{ set 'integration_responses' }}}
       },
