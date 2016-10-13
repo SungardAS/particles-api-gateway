@@ -1,0 +1,77 @@
+---
+statusCodes:
+  -
+    pattern: ""
+    code: "200"
+  -
+    pattern: "not permitted.*"
+    code: "401"
+  -
+    pattern: "unauthorized.*"
+    code: "403"
+contentType: "application/json"
+allowedMethods: "'OPTIONS'"
+allowedHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+allowedOrigin: "'*'"
+---
+
+{{#resource logicalId=resourceId}}
+  "Type" : "AWS::ApiGateway::Resource",
+  "Properties" : {
+    "RestApiId": { "Ref": "RestApiId" },
+    "ParentId": { "Ref": "ParentResourceId" },
+    "PathPart": {{helper "m:core" "propertyValue" resourcePath}}
+  }
+{{/resource}}
+
+{{#each methods}}
+
+  {{#resource logicalId=(concat this.resourceId this.method)}}
+    "Type" : "AWS::ApiGateway::Method",
+    "Properties" : {
+      "RestApiId": { "Ref": "RestApiId" },
+      "ResourceId": { "Ref": {{helper "m:core" "propertyValue" this.resourceId}} },
+      "HttpMethod": {{helper "m:core" "propertyValue" this.method}},
+      "AuthorizationType": {{helper "m:core" "propertyValue" this.authType}},
+      {{#if this.requestParameters}}
+        "RequestParameters": {{helper "m:core" "propertyValue" this.requestParameters}},
+      {{/if}}
+      "Integration": {
+        "Credentials": { "Ref": "InvokeFunctionRoleArn" },
+        "IntegrationHttpMethod": "POST",
+        "Type": "AWS",
+        "Uri": {"Fn::Join": ["", ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", { "Ref": {{helper "m:core" "propertyValue" this.lambdaArn}} }, "/invocations"]]},
+        "RequestTemplates": {{helper "m:core" "propertyValue" this.requestTemplates}},
+        {{{ set 'integration_responses' }}}
+      },
+      {{{ set 'method_responses' }}}
+    }
+  {{/resource}}
+
+{{/each}}
+
+
+{{#resource logicalId=(concat resourceId "Options")}}
+  "Type" : "AWS::ApiGateway::Method",
+  "Properties" : {
+    "RestApiId": { "Ref": "RestApiId" },
+    "ResourceId": { "Ref": {{helper "m:core" "propertyValue" resourceId}} },
+    "HttpMethod": "OPTIONS",
+    "AuthorizationType": "NONE",
+    "Integration": {
+      "Type": "MOCK",
+      "RequestTemplates": {"application/json": "{\"statusCode\": 200}" },
+      {{{ set 'integration_responses'
+        statusCodes=statusCodes
+        allowedMethods=allowedMethods
+        allowedHeaders=allowedHeaders
+      }}}
+    },
+    {{{ set 'method_responses'
+      statusCodes=statusCodes
+      contentType=contentType
+      allowedMethods=allowedMethods
+      allowedHeaders=allowedHeaders
+    }}}
+  }
+{{/resource}}
